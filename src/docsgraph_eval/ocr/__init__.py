@@ -1,0 +1,1 @@
+"""OCR accuracy benchmark area."""
