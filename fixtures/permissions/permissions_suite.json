@@ -1,0 +1,80 @@
+{
+  "area": "permissions",
+  "cases": [
+    {
+      "case_id": "permissions_admin_same_org_write",
+      "input_data": {
+        "user_id": "user_admin_org_a",
+        "role": "admin",
+        "organization_id": "org_a",
+        "resource_id": "doc_org_a_001",
+        "action": "write"
+      },
+      "expected_output": true,
+      "tolerance": 0.0,
+      "metadata": {
+        "scenario": "Admin of Org A writing to document in Org A"
+      }
+    },
+    {
+      "case_id": "permissions_admin_cross_org_write",
+      "input_data": {
+        "user_id": "user_admin_org_a",
+        "role": "admin",
+        "organization_id": "org_a",
+        "resource_id": "doc_org_b_001",
+        "action": "write"
+      },
+      "expected_output": false,
+      "tolerance": 0.0,
+      "metadata": {
+        "scenario": "Admin of Org A writing to document in Org B"
+      }
+    },
+    {
+      "case_id": "permissions_viewer_same_org_read",
+      "input_data": {
+        "user_id": "user_viewer_org_a",
+        "role": "viewer",
+        "organization_id": "org_a",
+        "resource_id": "doc_org_a_001",
+        "action": "read"
+      },
+      "expected_output": true,
+      "tolerance": 0.0,
+      "metadata": {
+        "scenario": "Viewer of Org A reading document in Org A"
+      }
+    },
+    {
+      "case_id": "permissions_viewer_same_org_write",
+      "input_data": {
+        "user_id": "user_viewer_org_a",
+        "role": "viewer",
+        "organization_id": "org_a",
+        "resource_id": "doc_org_a_001",
+        "action": "write"
+      },
+      "expected_output": false,
+      "tolerance": 0.0,
+      "metadata": {
+        "scenario": "Viewer of Org A writing to document in Org A"
+      }
+    },
+    {
+      "case_id": "permissions_user_cross_org_read",
+      "input_data": {
+        "user_id": "user_member_org_a",
+        "role": "member",
+        "organization_id": "org_a",
+        "resource_id": "doc_org_b_001",
+        "action": "read"
+      },
+      "expected_output": false,
+      "tolerance": 0.0,
+      "metadata": {
+        "scenario": "Member of Org A reading document in Org B"
+      }
+    }
+  ]
+}

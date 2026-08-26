@@ -1,0 +1,32 @@
+{
+  "area": "retrieval",
+  "cases": [
+    {
+      "case_id": "retrieval_case_billing",
+      "input_data": {
+        "query": "billing terms"
+      },
+      "expected_output": [
+        "doc_billing_001",
+        "doc_billing_002"
+      ],
+      "tolerance": 0.5,
+      "metadata": {
+        "domain": "finance"
+      }
+    },
+    {
+      "case_id": "retrieval_case_termination",
+      "input_data": {
+        "query": "contract termination notice period"
+      },
+      "expected_output": [
+        "doc_termination_001"
+      ],
+      "tolerance": 0.0,
+      "metadata": {
+        "domain": "legal"
+      }
+    }
+  ]
+}

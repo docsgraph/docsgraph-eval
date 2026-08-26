@@ -1,0 +1,29 @@
+{
+  "area": "evidence_attribution",
+  "cases": [
+    {
+      "case_id": "attribution_case_late_payment",
+      "input_data": {
+        "query": "What is the interest rate on late payments?",
+        "answer": "The interest rate on late payments is 5% per annum."
+      },
+      "expected_output": "Interest on late payments shall accrue at a rate of 5% per annum.",
+      "tolerance": 0.0,
+      "metadata": {
+        "document": "loan_agreement.txt"
+      }
+    },
+    {
+      "case_id": "attribution_case_notices",
+      "input_data": {
+        "query": "Who is the main contact for notices?",
+        "answer": "Notices should be sent to John Doe."
+      },
+      "expected_output": "All notices shall be sent to the attention of John Doe.",
+      "tolerance": 0.0,
+      "metadata": {
+        "document": "service_agreement.txt"
+      }
+    }
+  ]
+}
