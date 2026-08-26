@@ -41,18 +41,20 @@ def run(cases: list[BenchmarkCase], target_url: str = "http://localhost:8000") -
             precision = len(intersection) / len(actual_set) if actual_set else 0.0
 
             score = (
-                2 * (precision * recall) / (precision + recall)
-                if (precision + recall) > 0
-                else 0.0
+                2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
             )
 
             limit = tol if tol is not None else 0.0
             case_passed = recall >= (1.0 - limit)
-            return case_passed, score, {
-                "precision": precision,
-                "recall": recall,
-                "f1_score": score,
-            }
+            return (
+                case_passed,
+                score,
+                {
+                    "precision": precision,
+                    "recall": recall,
+                    "f1_score": score,
+                },
+            )
 
         case_passed, score, details = run_http_case(
             target_url=target_url,

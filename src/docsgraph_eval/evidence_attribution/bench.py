@@ -26,9 +26,7 @@ def run(cases: list[BenchmarkCase], target_url: str = "http://localhost:8000") -
         def eval_attribution(
             expected: Any, actual: Any, _tol: float | None
         ) -> tuple[bool, float, dict[str, Any]]:
-            actual_attribution = (
-                actual.get("evidence", "") if isinstance(actual, dict) else actual
-            )
+            actual_attribution = actual.get("evidence", "") if isinstance(actual, dict) else actual
 
             expected_str = str(expected)
             actual_str = str(actual_attribution)

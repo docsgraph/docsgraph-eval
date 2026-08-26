@@ -50,10 +50,14 @@ def run(cases: list[BenchmarkCase], target_url: str = "http://localhost:8000") -
             score = matched_fields / total_fields
             limit = tol if tol is not None else 0.0
             case_passed = score >= (1.0 - limit)
-            return case_passed, score, {
-                "matched_fields": matched_fields,
-                "total_fields": total_fields,
-            }
+            return (
+                case_passed,
+                score,
+                {
+                    "matched_fields": matched_fields,
+                    "total_fields": total_fields,
+                },
+            )
 
         case_passed, score, details = run_http_case(
             target_url=target_url,
