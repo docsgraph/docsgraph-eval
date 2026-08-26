@@ -705,3 +705,44 @@ def test_real_fixtures_permissions(mock_post: MagicMock) -> None:
     assert details["permissions_viewer_same_org_read"]["passed"] is True
     assert details["permissions_viewer_same_org_write"]["passed"] is True
     assert details["permissions_user_cross_org_read"]["passed"] is True
+
+
+@patch("httpx.post")
+def test_real_fixtures_offline_consistency(mock_post: MagicMock) -> None:
+    from docsgraph_eval.core import load_suites_from_dir
+    from docsgraph_eval.offline_consistency import bench as offline_bench
+
+    suites = load_suites_from_dir(Path("fixtures/offline_consistency"))
+    assert len(suites) == 1
+    suite = suites[0]
+    assert suite.area == "offline_consistency"
+    assert len(suite.cases) == 2
+
+    def post_side_effect(url: str, json: Any, *args: Any, **kwargs: Any) -> MagicMock:
+        res = MagicMock(spec=httpx.Response)
+        res.status_code = 200
+        document_id = json.get("document_id")
+
+        if document_id == "doc_001":
+            res.json.return_value = {
+                "state": {"title": "Client 1 Draft", "content": "Client 2 Content"},
+                "data_loss": False,
+            }
+        else:
+            res.json.return_value = {"state": {"title": "Title B"}, "data_loss": True}
+        return res
+
+    mock_post.side_effect = post_side_effect
+
+    result = offline_bench.run(suite.cases, target_url="http://localhost:8000")
+    assert result.area == "offline_consistency"
+    assert result.total_cases == 2
+    assert result.passed == 1
+
+    details = result.details["cases"]
+    assert details["offline_consistency_merge_non_conflicting"]["passed"] is True
+    assert details["offline_consistency_resolve_conflicting_lww"]["passed"] is False
+    assert (
+        "Silent data loss detected"
+        in details["offline_consistency_resolve_conflicting_lww"]["error"]
+    )

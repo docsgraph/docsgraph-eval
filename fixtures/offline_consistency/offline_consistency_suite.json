@@ -1,0 +1,77 @@
+{
+  "area": "offline_consistency",
+  "cases": [
+    {
+      "case_id": "offline_consistency_merge_non_conflicting",
+      "input_data": {
+        "document_id": "doc_001",
+        "initial_state": {
+          "title": "Original Title",
+          "content": "Original Content"
+        },
+        "client_1_offline_ops": [
+          {
+            "op": "update",
+            "field": "title",
+            "value": "Client 1 Draft",
+            "timestamp": 1724670000
+          }
+        ],
+        "client_2_offline_ops": [
+          {
+            "op": "update",
+            "field": "content",
+            "value": "Client 2 Content",
+            "timestamp": 1724671000
+          }
+        ]
+      },
+      "expected_output": {
+        "state": {
+          "title": "Client 1 Draft",
+          "content": "Client 2 Content"
+        },
+        "data_loss": false
+      },
+      "tolerance": 0.0,
+      "metadata": {
+        "scenario": "Concurrent updates to different fields should merge successfully"
+      }
+    },
+    {
+      "case_id": "offline_consistency_resolve_conflicting_lww",
+      "input_data": {
+        "document_id": "doc_002",
+        "initial_state": {
+          "title": "Original Title"
+        },
+        "client_1_offline_ops": [
+          {
+            "op": "update",
+            "field": "title",
+            "value": "Title A",
+            "timestamp": 1724670000
+          }
+        ],
+        "client_2_offline_ops": [
+          {
+            "op": "update",
+            "field": "title",
+            "value": "Title B",
+            "timestamp": 1724672000
+          }
+        ]
+      },
+      "expected_output": {
+        "state": {
+          "title": "Title B"
+        },
+        "data_loss": false
+      },
+      "tolerance": 0.0,
+      "metadata": {
+        "scenario": "Concurrent updates to same field should resolve using LWW without data loss"
+      }
+    }
+  ]
+}
