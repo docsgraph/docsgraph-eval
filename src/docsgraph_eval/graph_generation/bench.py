@@ -37,18 +37,46 @@ def run(cases: list[BenchmarkCase], target_url: str = "http://localhost:8000") -
             for en in expected_nodes:
                 if en in actual_nodes:
                     matched_nodes += 1
-            node_score = matched_nodes / len(expected_nodes) if expected_nodes else 1.0
+            node_recall = matched_nodes / len(expected_nodes) if expected_nodes else 1.0
+            node_precision = (
+                matched_nodes / len(actual_nodes)
+                if actual_nodes
+                else (1.0 if not expected_nodes else 0.0)
+            )
 
             matched_edges = 0
             for ee in expected_edges:
                 if ee in actual_edges:
                     matched_edges += 1
-            edge_score = matched_edges / len(expected_edges) if expected_edges else 1.0
+            edge_recall = matched_edges / len(expected_edges) if expected_edges else 1.0
+            edge_precision = (
+                matched_edges / len(actual_edges)
+                if actual_edges
+                else (1.0 if not expected_edges else 0.0)
+            )
 
-            score = 0.5 * node_score + 0.5 * edge_score
+            edge_f1 = (
+                2 * (edge_precision * edge_recall) / (edge_precision + edge_recall)
+                if (edge_precision + edge_recall) > 0
+                else 0.0
+            )
+
+            node_score = 0.5 * node_recall + 0.5 * node_precision
+            score = 0.5 * node_score + 0.5 * edge_f1
+
             limit = tol if tol is not None else 0.0
             case_passed = score >= (1.0 - limit)
-            return case_passed, score, {"node_score": node_score, "edge_score": edge_score}
+            return (
+                case_passed,
+                score,
+                {
+                    "node_precision": node_precision,
+                    "node_recall": node_recall,
+                    "relationship_precision": edge_precision,
+                    "relationship_recall": edge_recall,
+                    "relationship_f1": edge_f1,
+                },
+            )
 
         case_passed, score, details = run_http_case(
             target_url=target_url,

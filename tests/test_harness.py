@@ -614,3 +614,47 @@ def test_real_fixtures_evidence_attribution(mock_post: MagicMock) -> None:
         "No valid supporting citation"
         in result.details["cases"]["attribution_case_notices"]["error"]
     )
+
+
+@patch("httpx.post")
+def test_real_fixtures_graph_generation(mock_post: MagicMock) -> None:
+    from docsgraph_eval.core import load_suites_from_dir
+    from docsgraph_eval.graph_generation import bench as graph_bench
+
+    suites = load_suites_from_dir(Path("fixtures/graph_generation"))
+    assert len(suites) == 1
+    suite = suites[0]
+    assert suite.area == "graph_generation"
+    assert len(suite.cases) == 1
+
+    mock_response = MagicMock(spec=httpx.Response)
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "nodes": [
+            {"id": "doc_001", "type": "document", "label": "Service Agreement"},
+            {"id": "party_001", "type": "party", "label": "Acme Corp"},
+            {"id": "party_002", "type": "party", "label": "Beta LLC"},
+            {"id": "extra_node", "type": "party", "label": "Extra Entity"},
+        ],
+        "edges": [
+            {"source": "doc_001", "target": "party_001", "type": "HAS_SIGNATORY"},
+            {"source": "doc_001", "target": "party_002", "type": "HAS_SIGNATORY"},
+            {"source": "doc_001", "target": "extra_node", "type": "HAS_SIGNATORY"},
+        ],
+    }
+    mock_post.return_value = mock_response
+
+    result = graph_bench.run(suite.cases, target_url="http://localhost:8000")
+    assert result.area == "graph_generation"
+    assert result.total_cases == 1
+    assert result.passed == 0
+    assert result.score is not None
+    assert 0.70 < result.score < 0.71
+
+    # Check precision/recall reporting on relationships
+    details = result.details["cases"]["graph_case_service_agreement"]
+    assert details["passed"] is False
+    assert details["node_precision"] == 0.75
+    assert details["node_recall"] == 0.75
+    assert 0.66 < details["relationship_precision"] < 0.67
+    assert 0.66 < details["relationship_recall"] < 0.67
