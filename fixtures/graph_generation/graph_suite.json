@@ -1,0 +1,28 @@
+{
+  "area": "graph_generation",
+  "cases": [
+    {
+      "case_id": "graph_case_service_agreement",
+      "input_data": {
+        "document_id": "doc_001"
+      },
+      "expected_output": {
+        "nodes": [
+          {"id": "doc_001", "type": "document", "label": "Service Agreement"},
+          {"id": "party_001", "type": "party", "label": "Acme Corp"},
+          {"id": "party_002", "type": "party", "label": "Beta LLC"},
+          {"id": "clause_001", "type": "clause", "label": "Termination Clause"}
+        ],
+        "edges": [
+          {"source": "doc_001", "target": "party_001", "type": "HAS_SIGNATORY"},
+          {"source": "doc_001", "target": "party_002", "type": "HAS_SIGNATORY"},
+          {"source": "doc_001", "target": "clause_001", "type": "CONTAINS_CLAUSE"}
+        ]
+      },
+      "tolerance": 0.2,
+      "metadata": {
+        "document_type": "Service Agreement"
+      }
+    }
+  ]
+}

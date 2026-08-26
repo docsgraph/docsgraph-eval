@@ -35,11 +35,26 @@ uv run pre-commit install
 
 ## CLI
 
+Run benchmarks using the Typer CLI:
+
 ```bash
+# Get help and list available subcommands
 uv run docsgraph-eval --help
-uv run docsgraph-eval run ocr
-uv run docsgraph-eval run all
+
+# Run a specific benchmark area with optional target server and output options
+uv run docsgraph-eval run ocr --target-url http://localhost:8000 --fixtures-dir fixtures --format json --output report.json
+
+# Run all implemented benchmark suites
+uv run docsgraph-eval run all --target-url http://localhost:8000 --fixtures-dir fixtures --format markdown
 ```
+
+### CLI Options
+
+The following options are supported across all `run` subcommands:
+- `--target-url`: Base URL of the running target `docsgraph-server` instance (default: `http://localhost:8000`).
+- `--fixtures-dir`: Directory containing benchmark suites partitioned by area (default: `fixtures`).
+- `--format`: Format of the generated report (`json` or `markdown`, default: `json`).
+- `--output`: File path to save the generated report. If omitted, results are printed to standard output.
 
 ## Benchmark areas
 
@@ -52,15 +67,55 @@ uv run docsgraph-eval run all
 - **sync** — whether the sync protocol converges correctly across simulated clients.
 - **offline_consistency** — whether data stays consistent across offline/online transitions and reconnects.
 
-Each area lives in `src/docsgraph_eval/<area>/` as a skeleton: a
-`BenchmarkCase` type (shared, defined in `src/docsgraph_eval/core.py`) and a
-`run()` stub that will grow into the real benchmark implementation. Sample
-documents and golden answers will live in `fixtures/<area>/`.
+## Adding a New Benchmark Suite
+
+To add a new benchmark suite for an existing area (e.g., `ocr`):
+
+1. **Define the suite JSON file**:
+   Create a JSON file inside the area's fixtures directory (e.g., `fixtures/ocr/invoice_suite.json`). The file must adhere to the `BenchmarkSuite` schema:
+   ```json
+   {
+     "area": "ocr",
+     "cases": [
+       {
+         "case_id": "ocr_invoice_001",
+         "input_data": "file://fixtures/ocr/invoice_001.png",
+         "expected_output": "INVOICE #12345\nDate: 2026-08-26\nTotal: $150.00",
+         "tolerance": 0.05,
+         "metadata": {
+           "difficulty": "easy",
+           "source": "scanned_invoice"
+         }
+       }
+     ]
+   }
+   ```
+
+2. **Place target files if necessary**:
+   If the test case uploads a file, place it in the same fixtures folder (e.g., `fixtures/ocr/invoice_001.png`). In `input_data`, specify the relative path to the file using `"file://fixtures/ocr/invoice_001.png"` or `{"file_path": "fixtures/ocr/invoice_001.png"}`.
+
+3. **Run the suite**:
+   Execute the benchmark harness via the CLI pointing to the server instance and the fixtures directory:
+   ```bash
+   uv run docsgraph-eval run ocr --fixtures-dir fixtures --target-url http://localhost:8000
+   ```
+
+## Adding a New Capability Area
+
+To introduce a completely new benchmarking area:
+
+1. **Add the area subfolder**:
+   Create `src/docsgraph_eval/<new_area>/` and add `__init__.py` and `bench.py`.
+2. **Implement `run()`**:
+   In `bench.py`, define the `run(cases: list[BenchmarkCase], target_url: str) -> BenchmarkResult` function. You can use `docsgraph_eval.core.run_http_case` to execute HTTP calls against the server and evaluate the outputs.
+3. **Register the command**:
+   In `src/docsgraph_eval/cli.py`, add the new area to `FOLDER_MAP` and register the corresponding subcommand with `@run_app.command("<new-area>")`.
+4. **Create fixtures**:
+   Create a folder `fixtures/<new_area>/` with the input suites.
 
 ## Status
 
-Early scaffold. Benchmark logic is not implemented yet — `run()` in each
-area currently raises `NotImplementedError`.
+Active development. The modular harness supports all 8 capability areas and dynamic suite loading, execution against the target server API, and structured reporting.
 
 ## License
 
