@@ -577,3 +577,40 @@ def test_real_fixtures_retrieval(mock_post: MagicMock) -> None:
     assert result.details["cases"]["retrieval_case_billing"]["reciprocal_rank"] == 0.5
     assert result.details["cases"]["retrieval_case_termination"]["passed"] is False
     assert result.details["cases"]["retrieval_case_termination"]["reciprocal_rank"] == 0.0
+
+
+@patch("httpx.post")
+def test_real_fixtures_evidence_attribution(mock_post: MagicMock) -> None:
+    from docsgraph_eval.core import load_suites_from_dir
+    from docsgraph_eval.evidence_attribution import bench as evidence_bench
+
+    suites = load_suites_from_dir(Path("fixtures/evidence_attribution"))
+    assert len(suites) == 1
+    suite = suites[0]
+    assert suite.area == "evidence_attribution"
+    assert len(suite.cases) == 2
+
+    def post_side_effect(url: str, json: Any, *args: Any, **kwargs: Any) -> MagicMock:
+        res = MagicMock(spec=httpx.Response)
+        res.status_code = 200
+        if json.get("query") == "What is the interest rate on late payments?":
+            res.json.return_value = {
+                "evidence": "Interest on late payments shall accrue at a rate of 5% per annum."
+            }
+        else:
+            res.json.return_value = {"evidence": ""}
+        return res
+
+    mock_post.side_effect = post_side_effect
+
+    result = evidence_bench.run(suite.cases, target_url="http://localhost:8000")
+    assert result.area == "evidence_attribution"
+    assert result.total_cases == 2
+    assert result.passed == 1
+    assert result.details is not None
+    assert result.details["cases"]["attribution_case_late_payment"]["passed"] is True
+    assert result.details["cases"]["attribution_case_notices"]["passed"] is False
+    assert (
+        "No valid supporting citation"
+        in result.details["cases"]["attribution_case_notices"]["error"]
+    )

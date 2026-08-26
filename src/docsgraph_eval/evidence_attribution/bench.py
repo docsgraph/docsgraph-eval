@@ -28,8 +28,30 @@ def run(cases: list[BenchmarkCase], target_url: str = "http://localhost:8000") -
         ) -> tuple[bool, float, dict[str, Any]]:
             actual_attribution = actual.get("evidence", "") if isinstance(actual, dict) else actual
 
-            expected_str = str(expected)
-            actual_str = str(actual_attribution)
+            expected_str = str(expected).strip()
+            actual_str = str(actual_attribution).strip()
+
+            if not actual_str:
+                if not expected_str:
+                    return True, 1.0, {"actual_attribution": actual_str}
+                return (
+                    False,
+                    0.0,
+                    {
+                        "actual_attribution": actual_str,
+                        "error": "No valid supporting citation",
+                    },
+                )
+
+            if not expected_str:
+                return (
+                    False,
+                    0.0,
+                    {
+                        "actual_attribution": actual_str,
+                        "error": "Unexpected citation provided",
+                    },
+                )
 
             case_passed = expected_str in actual_str or actual_str in expected_str
             score = 1.0 if case_passed else 0.0
