@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -539,3 +540,40 @@ def test_real_fixtures_extraction(mock_post: MagicMock) -> None:
     assert result.total_cases == 1
     assert result.passed == 0
     assert result.score == 0.8
+
+
+@patch("httpx.post")
+def test_real_fixtures_retrieval(mock_post: MagicMock) -> None:
+    from docsgraph_eval.core import load_suites_from_dir
+    from docsgraph_eval.retrieval import bench as retrieval_bench
+
+    suites = load_suites_from_dir(Path("fixtures/retrieval"))
+    assert len(suites) == 1
+    suite = suites[0]
+    assert suite.area == "retrieval"
+    assert len(suite.cases) == 2
+
+    def post_side_effect(url: str, json: Any, *args: Any, **kwargs: Any) -> MagicMock:
+        res = MagicMock(spec=httpx.Response)
+        res.status_code = 200
+        if json.get("query") == "billing terms":
+            res.json.return_value = {
+                "results": ["doc_billing_003", "doc_billing_001", "doc_billing_002"]
+            }
+        else:
+            res.json.return_value = {"results": ["doc_other", "doc_other2"]}
+        return res
+
+    mock_post.side_effect = post_side_effect
+
+    result = retrieval_bench.run(suite.cases, target_url="http://localhost:8000")
+    assert result.area == "retrieval"
+    assert result.total_cases == 2
+    assert result.passed == 1
+
+    assert result.details is not None
+    assert result.details["mrr"] == 0.25
+    assert result.details["cases"]["retrieval_case_billing"]["passed"] is True
+    assert result.details["cases"]["retrieval_case_billing"]["reciprocal_rank"] == 0.5
+    assert result.details["cases"]["retrieval_case_termination"]["passed"] is False
+    assert result.details["cases"]["retrieval_case_termination"]["reciprocal_rank"] == 0.0

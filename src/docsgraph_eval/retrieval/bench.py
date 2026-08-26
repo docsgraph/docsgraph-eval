@@ -34,7 +34,7 @@ def run(cases: list[BenchmarkCase], target_url: str = "http://localhost:8000") -
 
             if not expected_set:
                 score = 1.0 if not actual_set else 0.0
-                return score == 1.0, score, {}
+                return score == 1.0, score, {"reciprocal_rank": score}
 
             intersection = expected_set.intersection(actual_set)
             recall = len(intersection) / len(expected_set)
@@ -43,6 +43,13 @@ def run(cases: list[BenchmarkCase], target_url: str = "http://localhost:8000") -
             score = (
                 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
             )
+
+            # Compute Reciprocal Rank (rank of first relevant document)
+            rr = 0.0
+            for rank, doc_id in enumerate(actual_ids, start=1):
+                if doc_id in expected_set:
+                    rr = 1.0 / rank
+                    break
 
             limit = tol if tol is not None else 0.0
             case_passed = recall >= (1.0 - limit)
@@ -53,6 +60,7 @@ def run(cases: list[BenchmarkCase], target_url: str = "http://localhost:8000") -
                     "precision": precision,
                     "recall": recall,
                     "f1_score": score,
+                    "reciprocal_rank": rr,
                 },
             )
 
@@ -76,10 +84,14 @@ def run(cases: list[BenchmarkCase], target_url: str = "http://localhost:8000") -
         }
 
     avg_score = total_score / total_cases if total_cases > 0 else 0.0
+    total_rr = sum(
+        info.get("reciprocal_rank", 0.0) for info in case_details.values() if isinstance(info, dict)
+    )
+    mrr = total_rr / total_cases if total_cases > 0 else 0.0
     return BenchmarkResult(
         area=AREA,
         total_cases=total_cases,
         passed=passed,
         score=avg_score,
-        details={"cases": case_details},
+        details={"cases": case_details, "mrr": mrr},
     )
