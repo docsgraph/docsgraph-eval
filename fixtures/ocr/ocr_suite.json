@@ -1,0 +1,17 @@
+{
+  "area": "ocr",
+  "cases": [
+    {
+      "case_id": "ocr_case_agreement",
+      "input_data": {
+        "file_path": "fixtures/ocr/sample_agreement.txt"
+      },
+      "expected_output": "NDA / CONFIDENTIALITY AGREEMENT\nThis Agreement is entered into on August 26, 2026, by and between:\n1. Party A: ACME Corporation, located at 123 Industrial Way,\n2. Party B: Beta LLC, located at 456 Tech Boulevard.\nThe parties agree to keep all shared information confidential.",
+      "tolerance": 0.05,
+      "metadata": {
+        "document_type": "NDA",
+        "length_chars": 268
+      }
+    }
+  ]
+}
