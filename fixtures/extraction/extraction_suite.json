@@ -1,0 +1,22 @@
+{
+  "area": "extraction",
+  "cases": [
+    {
+      "case_id": "extraction_case_contract",
+      "input_data": {
+        "file_path": "fixtures/extraction/sample_contract.txt"
+      },
+      "expected_output": {
+        "effective_date": "October 1, 2026",
+        "provider": "DevCorp Solutions",
+        "client": "MegaRetail Inc",
+        "monthly_fees": 15000.0,
+        "governing_law": "State of New York"
+      },
+      "tolerance": 0.01,
+      "metadata": {
+        "document_type": "Software Services Agreement"
+      }
+    }
+  ]
+}
