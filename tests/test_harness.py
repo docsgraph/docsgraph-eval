@@ -468,3 +468,74 @@ def test_cli_commands(tmp_path: Path) -> None:
         )
         assert result.exit_code == 0
         assert "=== Running benchmark: ocr ===" in result.output
+
+
+@patch("httpx.post")
+def test_real_fixtures_ocr(mock_post: MagicMock) -> None:
+    from docsgraph_eval.core import load_suites_from_dir
+    from docsgraph_eval.ocr import bench as ocr_bench
+
+    suites = load_suites_from_dir(Path("fixtures/ocr"))
+    assert len(suites) == 1
+    suite = suites[0]
+    assert suite.area == "ocr"
+    assert len(suite.cases) == 1
+    case = suite.cases[0]
+
+    # Verify input_data references the real sample file
+    file_path = case.input_data.get("file_path")
+    assert file_path == "fixtures/ocr/sample_agreement.txt"
+    assert Path(file_path).exists()
+
+    # 2. Mock HTTP post to simulate slightly imperfect OCR text (e.g. one character typo)
+    mock_response = MagicMock(spec=httpx.Response)
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "text": case.expected_output.replace("AGREEMENT", "AGREENENT")
+    }
+    mock_post.return_value = mock_response
+
+    result = ocr_bench.run(suite.cases, target_url="http://localhost:8000")
+    assert result.area == "ocr"
+    assert result.total_cases == 1
+    assert result.passed == 1
+    assert result.score is not None
+    assert 0.99 < result.score < 1.0
+
+
+@patch("httpx.post")
+def test_real_fixtures_extraction(mock_post: MagicMock) -> None:
+    from docsgraph_eval.core import load_suites_from_dir
+    from docsgraph_eval.extraction import bench as extraction_bench
+
+    suites = load_suites_from_dir(Path("fixtures/extraction"))
+    assert len(suites) == 1
+    suite = suites[0]
+    assert suite.area == "extraction"
+    assert len(suite.cases) == 1
+    case = suite.cases[0]
+
+    # Verify input_data references the real sample file
+    file_path = case.input_data.get("file_path")
+    assert file_path == "fixtures/extraction/sample_contract.txt"
+    assert Path(file_path).exists()
+
+    # 2. Mock HTTP post to simulate 4/5 matched fields (one mismatch on monthly_fees)
+    mock_response = MagicMock(spec=httpx.Response)
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "extracted_fields": {
+            "effective_date": "October 1, 2026",
+            "provider": "DevCorp Solutions",
+            "client": "MegaRetail Inc",
+            "monthly_fees": 12000.0,
+            "governing_law": "State of New York",
+        }
+    }
+    mock_post.return_value = mock_response
+
+    result = extraction_bench.run(suite.cases, target_url="http://localhost:8000")
+    assert result.area == "extraction"
+    assert result.total_cases == 1
+    assert result.passed == 0
+    assert result.score == 0.8
