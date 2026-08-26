@@ -29,7 +29,14 @@ def run(cases: list[BenchmarkCase], target_url: str = "http://localhost:8000") -
             actual_allow = actual.get("allowed", False) if isinstance(actual, dict) else actual
             case_passed = bool(actual_allow) == bool(expected)
             score = 1.0 if case_passed else 0.0
-            return case_passed, score, {"actual_allowed": actual_allow}
+            details: dict[str, Any] = {"actual_allowed": actual_allow}
+            if not case_passed:
+                details["error"] = (
+                    f"Permission check failed: Expected access to be "
+                    f"{'ALLOWED' if expected else 'DENIED'}, but got "
+                    f"{'ALLOWED' if actual_allow else 'DENIED'}."
+                )
+            return case_passed, score, details
 
         case_passed, score, details = run_http_case(
             target_url=target_url,

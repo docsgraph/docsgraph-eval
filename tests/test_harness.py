@@ -658,3 +658,50 @@ def test_real_fixtures_graph_generation(mock_post: MagicMock) -> None:
     assert details["node_recall"] == 0.75
     assert 0.66 < details["relationship_precision"] < 0.67
     assert 0.66 < details["relationship_recall"] < 0.67
+
+
+@patch("httpx.post")
+def test_real_fixtures_permissions(mock_post: MagicMock) -> None:
+    from docsgraph_eval.core import load_suites_from_dir
+    from docsgraph_eval.permissions import bench as permissions_bench
+
+    suites = load_suites_from_dir(Path("fixtures/permissions"))
+    assert len(suites) == 1
+    suite = suites[0]
+    assert suite.area == "permissions"
+    assert len(suite.cases) == 5
+
+    def post_side_effect(url: str, json: Any, *args: Any, **kwargs: Any) -> MagicMock:
+        res = MagicMock(spec=httpx.Response)
+        res.status_code = 200
+        user_id = json.get("user_id")
+        action = json.get("action")
+
+        if user_id == "user_admin_org_a":
+            res.json.return_value = {"allowed": True}
+        elif user_id == "user_viewer_org_a":
+            if action == "read":
+                res.json.return_value = {"allowed": True}
+            else:
+                res.json.return_value = {"allowed": False}
+        else:
+            res.json.return_value = {"allowed": False}
+        return res
+
+    mock_post.side_effect = post_side_effect
+
+    result = permissions_bench.run(suite.cases, target_url="http://localhost:8000")
+    assert result.area == "permissions"
+    assert result.total_cases == 5
+    assert result.passed == 4
+
+    details = result.details["cases"]
+    assert details["permissions_admin_same_org_write"]["passed"] is True
+    assert details["permissions_admin_cross_org_write"]["passed"] is False
+    assert (
+        "Permission check failed: Expected access to be DENIED, but got ALLOWED"
+        in details["permissions_admin_cross_org_write"]["error"]
+    )
+    assert details["permissions_viewer_same_org_read"]["passed"] is True
+    assert details["permissions_viewer_same_org_write"]["passed"] is True
+    assert details["permissions_user_cross_org_read"]["passed"] is True
